@@ -60,7 +60,7 @@ public class ProductDataServiceTest {
 		when(client.callProductClient(sb.toString())).thenReturn(response);
 		dataService.init();
 		Assertions.assertThat(dataService.getProducts().size() == 3);
-		Assertions.assertThat(dataService.getProducts().get(1).getDoublePrice() == 0.0);
+		Assertions.assertThat(dataService.getProducts().get(1).getDoublePrice().equals(0.0));
 	}
 	
 	private List<Product> getSampleProducts() {
