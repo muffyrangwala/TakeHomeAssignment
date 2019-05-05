@@ -91,7 +91,7 @@ public class SpecificationSearchTest {
 		List<Product> products = productService.searchProducts(filters);
 		Assertions.assertThat(products.size() == 2);
 		Assertions.assertThat(products.get(0).getProductId().equals("222-222"));
-		Assertions.assertThat(products.get(0).getProductId().equals("333-333"));
+		Assertions.assertThat(products.get(1).getProductId().equals("333-333"));
 	}
 	
 	@Test
@@ -101,7 +101,7 @@ public class SpecificationSearchTest {
 		List<Product> products = productService.searchProducts(filters);
 		Assertions.assertThat(products.size() == 2);
 		Assertions.assertThat(products.get(0).getProductId().equals("111-111"));
-		Assertions.assertThat(products.get(0).getProductId().equals("333-333"));
+		Assertions.assertThat(products.get(1).getProductId().equals("333-333"));
 	}
 	
 	@Test
