@@ -9,7 +9,9 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
+import org.springframework.web.client.RestTemplate;
 
+import com.walmart.search.client.ProductRestClient;
 import com.walmart.search.exception.ProductException;
 import com.walmart.search.service.ProductDataService;
 import com.walmart.search.service.ProductService;
@@ -23,15 +25,23 @@ public class SpecificationSearchTest {
 	@Mock
 	private ProductClientConfig config;
 	
+	@Mock
+	private ProductRestClient client;
+	
+	@Mock
+	private RestTemplate restTemplate;
+	
 	private ProductDataService dataService;
 	private ProductService productService;
 	
 	@Before
 	public void setup() {
-		dataService = new ProductDataService(config);
-		List<Product> products = getSampleInput();
-		dataService.setProducts(products);
+		client = new ProductRestClient(restTemplate);
+		dataService = new ProductDataService(config, client);
 		productService = new ProductService(dataService);
+		
+		List<Product> products = getSampleProducts();
+		dataService.setProducts(products);
 	}
 
 	@Test
@@ -127,7 +137,7 @@ public class SpecificationSearchTest {
 		Assertions.assertThat(products.get(0).getProductId().equals("222-222"));
 	}
 	
-	private List<Product> getSampleInput() {
+	private List<Product> getSampleProducts() {
 		List<Product> products = new ArrayList<>();
 		
 		Product product = new Product();

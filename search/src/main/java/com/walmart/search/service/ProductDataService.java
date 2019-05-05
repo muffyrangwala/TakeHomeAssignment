@@ -1,7 +1,6 @@
 package com.walmart.search.service;
 
 import java.text.NumberFormat;
-import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -13,8 +12,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.RestTemplate;
 
+import com.walmart.search.client.ProductRestClient;
 import com.walmart.search.utils.ProductClientConfig;
 import com.walmart.search.vo.Product;
 import com.walmart.search.vo.ProductsClientResponse;
@@ -22,15 +21,19 @@ import com.walmart.search.vo.ProductsClientResponse;
 @Service
 public class ProductDataService {
 
-	private List<Product> products = new ArrayList<>();
 	private ProductClientConfig config;
+	private ProductRestClient client;
+
+	private List<Product> products = new ArrayList<>();
 	private final String SEPARATOR = "/";
+
 	Logger logger = LoggerFactory.getLogger(ProductDataService.class);
 
 	@Autowired
-	public ProductDataService(ProductClientConfig config) {
+	public ProductDataService(ProductClientConfig config, ProductRestClient client) {
 		super();
 		this.config = config;
+		this.client = client;
 	}
 
 	/**
@@ -39,7 +42,7 @@ public class ProductDataService {
 	 */
 	@PostConstruct
 	@Scheduled(fixedRateString = "${product.cache.refresh}")
-	private void init(){
+	public void init(){
 		loadProductsList();  
 	}
 
@@ -52,25 +55,27 @@ public class ProductDataService {
 			sb.append(config.getProducts());
 			sb.append(config.getFirstRequest());
 
-			ProductsClientResponse response = getData(sb.toString());
-			tempList.addAll(response.getProducts());
-			int totalProducts = response.getTotalProducts();
-			int numberOfCalls = totalProducts / config.getMaxPageSize();
-			if (totalProducts % config.getMaxPageSize() != 0) {
-				numberOfCalls += 1;
-			}
-
-			sb = new StringBuilder();
-			for (int i = 2; i <= numberOfCalls; i++) {
-				sb.append(config.getClientUrl());
-				sb.append(config.getProducts());
-				sb.append(i);
-				sb.append(SEPARATOR);
-				sb.append(config.getMaxPageSize());
-				sb.append(SEPARATOR);
-				response = getData(sb.toString());
+			ProductsClientResponse response = client.callProductClient(sb.toString());
+			if (response != null) {
 				tempList.addAll(response.getProducts());
+				int totalProducts = response.getTotalProducts();
+				int numberOfCalls = totalProducts / config.getMaxPageSize();
+				if (totalProducts % config.getMaxPageSize() != 0) {
+					numberOfCalls += 1;
+				}
+
 				sb = new StringBuilder();
+				for (int i = 2; i <= numberOfCalls; i++) {
+					sb.append(config.getClientUrl());
+					sb.append(config.getProducts());
+					sb.append(i);
+					sb.append(SEPARATOR);
+					sb.append(config.getMaxPageSize());
+					sb.append(SEPARATOR);
+					response = client.callProductClient(sb.toString());
+					tempList.addAll(response.getProducts());
+					sb = new StringBuilder();
+				}
 			}
 
 			processAmounts(tempList);
@@ -88,15 +93,10 @@ public class ProductDataService {
 				NumberFormat currencyFormatter = NumberFormat.getCurrencyInstance(locale);
 				Double price = currencyFormatter.parse(product.getPrice()).doubleValue();
 				product.setDoublePrice(price);
-			} catch (ParseException e) {
+			} catch (Exception e) {
 				product.setDoublePrice(0.0);
 			}
 		}
-	}
-
-	private ProductsClientResponse getData(String restUrl) {
-		RestTemplate restTemplate = new RestTemplate();
-		return restTemplate.getForObject(restUrl , ProductsClientResponse.class);
 	}
 
 	public List<Product> getProducts() {
